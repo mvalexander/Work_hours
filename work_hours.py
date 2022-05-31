@@ -1,3 +1,7 @@
+#############################################################
+# work_hours.py - A program to track and report my work hours
+# written by Mark Alexander (alexander.markv@gmail.com)
+#############################################################
 import PySimpleGUI as sg
 import datetime as dt
 import copy
@@ -65,7 +69,7 @@ main_layout = [
                         write_only=True,
                         key="-NOTIFICATIONS-",
                         size=(100, 20),
-                        reroute_stdout=True,
+                        reroute_stdout=True, # print statements will redirect to this window
                     )
                 ]
             ],
@@ -365,7 +369,7 @@ def work_hrs_window(db_table, manifest_button=False):
     return return_str
 
 
-def main():
+def main_window():
     window = sg.Window(
         "Work Hours", main_layout, resizable=True, size=(1600, 1000), finalize=True
     )
@@ -471,4 +475,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main_window()

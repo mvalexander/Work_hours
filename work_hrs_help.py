@@ -1,3 +1,7 @@
+#######################################################
+# work_hrs_help.py - A helper module for work_hours.py
+# written by Mark Alexander (alexander.markv@gmail.com)
+#######################################################
 import sqlite3
 import pandas as pd
 import datetime as dt
