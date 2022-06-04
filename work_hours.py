@@ -1,3 +1,4 @@
+#!/home/marka/anaconda3/bin/python
 #############################################################
 # work_hours.py - A program to track and report my work hours
 # written by Mark Alexander (alexander.markv@gmail.com)
@@ -69,7 +70,7 @@ main_layout = [
                         write_only=True,
                         key="-NOTIFICATIONS-",
                         size=(100, 20),
-                        reroute_stdout=True, # print statements will redirect to this window
+                        reroute_stdout=True,  # print statements will redirect to this window
                     )
                 ]
             ],
@@ -78,7 +79,13 @@ main_layout = [
         sg.Push(),
         sg.Column(report_buttons_layout),
     ],
-    [sg.Push(), sg.Text(f"Today is: {dt.datetime.today().strftime('%A %B %d, %Y')}", font=('Arial', 15))]
+    [
+        sg.Push(),
+        sg.Text(
+            f"Today is: {dt.datetime.today().strftime('%A %B %d, %Y')}",
+            font=("Arial", 15),
+        ),
+    ],
 ]
 
 shifts_window_layout = [
@@ -212,7 +219,7 @@ def write_to_window(window, work_info):
             scheduled_text_color = "red"
         else:
             scheduled_text_color = "black"
-        for shift_idx, key_letter in zip([0,1,2], ['A', 'B', 'C']):
+        for shift_idx, key_letter in zip([0, 1, 2], ["A", "B", "C"]):
             window[f"-INPUT_{key_num}_{key_letter}-"].update(
                 shifts[shift_idx], text_color=scheduled_text_color
             )
@@ -245,7 +252,7 @@ def read_shifts_window(values, work_info):
     for idx, shifts in enumerate(new_shifts):
         for shift in shifts:
             if shift != " " and shift != "":
-                m = re.match(r'^\d{2}:\d{2}-\d{2}:\d{2}$', shift)
+                m = re.match(r"^\d{2}:\d{2}-\d{2}:\d{2}$", shift)
                 if not m:
                     return None
                 shift = shift.split("-")
@@ -374,14 +381,14 @@ def main_window():
         "Work Hours", main_layout, resizable=True, size=(1600, 1000), finalize=True
     )
 
+    # Initial Read in hours tables
+    bus_hrs_df = wh.read_work_hrs_table("bus_hours")
+    HD_hrs_df = wh.read_work_hrs_table("HD_hours")
+    delivery_hrs_df = wh.read_work_hrs_table("delivery_hours")
+
     first_loop_flag = True
     while True:
         event, values = window.read(timeout=100)
-
-        # Read in hours tables
-        bus_hrs_df = wh.read_work_hrs_table("bus_hours")
-        HD_hrs_df = wh.read_work_hrs_table("HD_hours")
-        delivery_hrs_df = wh.read_work_hrs_table("delivery_hours")
 
         if first_loop_flag:
             first_loop_flag = False
@@ -403,9 +410,6 @@ def main_window():
             if output_str != "":
                 # print update needed notices to NOTIFICATIONS window
                 print(output_str)
-
-        # Compute an eight day window DataFrame
-        eight_day_df = wh.compute_eight_day_df(bus_hrs_df, HD_hrs_df, delivery_hrs_df)
 
         if event == sg.WIN_CLOSED:
             break
@@ -429,6 +433,14 @@ def main_window():
                 print(return_str)
 
         if event == "-8DAYREPORT-":
+            # Make sure that we have the latest info
+            bus_hrs_df = wh.read_work_hrs_table("bus_hours")
+            HD_hrs_df = wh.read_work_hrs_table("HD_hours")
+            delivery_hrs_df = wh.read_work_hrs_table("delivery_hours")
+            eight_day_df = wh.compute_eight_day_df(
+                bus_hrs_df, HD_hrs_df, delivery_hrs_df
+            )
+
             window["-HRS_OUTPUT-"].update("")
             window["-NOTIFICATIONS-"].update("")
             seven_days_ago = dt.datetime.today() - dt.timedelta(days=7)
@@ -450,6 +462,14 @@ def main_window():
             print(display_str)
 
         if event == "-FUTUREREPORT-":
+            # Make sure that we have the latest info
+            bus_hrs_df = wh.read_work_hrs_table("bus_hours")
+            HD_hrs_df = wh.read_work_hrs_table("HD_hours")
+            delivery_hrs_df = wh.read_work_hrs_table("delivery_hours")
+            eight_day_df = wh.compute_eight_day_df(
+                bus_hrs_df, HD_hrs_df, delivery_hrs_df
+            )
+
             window["-HRS_OUTPUT-"].update("")
             window["-NOTIFICATIONS-"].update("")
             max_date = max(

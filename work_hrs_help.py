@@ -91,7 +91,7 @@ def compute_daily_hrs(df_table, dt_object, tdelta_as_hrs_min=False):
     shift_deltas = []
     scheduled = []
 
-    date_str = dt_object.strftime("%Y-%m-%d")
+    date_str = dt_object.strftime(DATE_FMT_STR)
     try:
         df_date = df_table[df_table.date == date_str]
         if df_date.empty:
@@ -257,7 +257,7 @@ def compute_eight_day_df(bus_hrs_df, HD_hrs_df, delivery_hrs_df):
         "eight_day_window": 0,
     }
     for idx_date in date_range:
-        row_data_dict["date"] = idx_date.strftime("%Y-%m-%d")
+        row_data_dict["date"] = idx_date.strftime(DATE_FMT_STR)
         for hrs_idx, item_dict in zip(
             hrs_columns,
             [
@@ -576,10 +576,10 @@ def get_notifications_str(dt_day_object_start, dt_day_object_stop, eight_day_df)
     :return: a string containing alerts for the given range
     """
     range_window_df = eight_day_df[
-        eight_day_df.date >= dt_day_object_start.strftime("%Y-%m-%d")
+        eight_day_df.date >= dt_day_object_start.strftime(DATE_FMT_STR)
     ]
     range_window_df = range_window_df[
-        range_window_df.date <= dt_day_object_stop.strftime("%Y-%m-%d")
+        range_window_df.date <= dt_day_object_stop.strftime(DATE_FMT_STR)
     ]
     return display_alerts(range_window_df)
 
@@ -593,7 +593,7 @@ def check_for_scheduled_updates(work_hrs_df):
     """
     today = dt.date.today()
     # reduce DataFrames to those dates before today that are still set as scheduled
-    work_hrs_updates_df = work_hrs_df[work_hrs_df.date < today.strftime("%Y-%m-%d")]
+    work_hrs_updates_df = work_hrs_df[work_hrs_df.date < today.strftime(DATE_FMT_STR)]
     work_hrs_updates_df = work_hrs_updates_df[work_hrs_updates_df.scheduled == 1]
     if work_hrs_updates_df.empty:
         return None
@@ -614,20 +614,15 @@ def check_for_time_errors(work_hrs_df):
 
     # check for valid time formats
     for idx, row in work_hrs_df.iterrows():
-        throw_away_list = []
         try:
-            throw_away_list.append(dt.datetime.strptime(row.date, "%Y-%m-%d"))
-            throw_away_list.append(dt.datetime.strptime(row.start, "%Y-%m-%d %H:%M"))
-            throw_away_list.append(dt.datetime.strptime(row.end, "%Y-%m-%d %H:%M"))
-        except:
-            return "Date/Time formatting errors"
-
-        # check for date matches
-        dt_date = dt.datetime.strptime(row.date, "%Y-%m-%d").date()
-        dt_start = dt.datetime.strptime(row.start, "%Y-%m-%d %H:%M").date()
-        dt_end = dt.datetime.strptime(row.end, "%Y-%m-%d %H:%M").date()
-        if (dt_date != dt_start) or (dt_date != dt_end):
-            return "Date mismatches"
+            # check for date matches
+            dt_date = dt.datetime.strptime(row.date, DATE_FMT_STR).date()
+            dt_start = dt.datetime.strptime(row.start, DATE_TIME_FMT_STR).date()
+            dt_end = dt.datetime.strptime(row.end, DATE_TIME_FMT_STR).date()
+            if (dt_date != dt_start) or (dt_date != dt_end):
+                return "Date mismatches"
+        except ValueError:
+            return "Date/time format issue"
 
     if dates_to_check:
         for date in dates_to_check:
