@@ -653,6 +653,7 @@ def process_manifest(manifest_text, work_hrs_df):
     :return: a Week object with manifest hours filled in
     """
     shifts = []
+    date_week_of_str = None
     # parse text for the starting date of the week
     for line in manifest_text.split("\n"):
         if "Coord" in line:
@@ -665,6 +666,9 @@ def process_manifest(manifest_text, work_hrs_df):
         if m:
             for item in m:
                 shifts.append(item)
+
+    if not date_week_of_str or not shifts or (len(shifts) != 10):
+        return None
 
     # add colons to shifts (1500-1800 -> 15:00-18:00)
     for idx, shift in enumerate(shifts):
@@ -683,12 +687,14 @@ def process_manifest(manifest_text, work_hrs_df):
     work_info = Week(work_hrs_df, week_of_date)
 
     # swap the morning and afternoon shifts to be in time order
-    if len(shifts) != 10:
-        return None
-    else:
-        for idx in range(5):
-            if shifts[idx].split("-")[0] > shifts[idx + 5].split("-")[0]:
-                shifts[idx], shifts[idx + 5] = shifts[idx + 5], shifts[idx]
+    for idx in range(5):
+        if shifts[idx].split("-")[0] > shifts[idx + 5].split("-")[0]:
+            shifts[idx], shifts[idx + 5] = shifts[idx + 5], shifts[idx]
+
+    # remove any 00:00-00:00 shifts
+    for idx, shift in enumerate(shifts):
+        if shift == '00:00-00:00':
+            shifts[idx] = ''
 
     # modify the Week object to have the new shift info
     for idx in range(5):

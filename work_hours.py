@@ -314,7 +314,10 @@ def work_hrs_window(db_table, manifest_button=False):
             )
             if manifest_text:
                 work_info = wh.process_manifest(manifest_text, work_hrs_df)
-                write_to_window(window, work_info)
+                if work_info:
+                    write_to_window(window, work_info)
+                else:
+                    window["-STATUS-"].update("Error reading Manifest", text_color="#FF0000")
 
         if event == "-SAVE-":
             new_work_hrs_df = read_shifts_window(values, work_info)
