@@ -43,6 +43,7 @@ work_hours_buttons_layout = [
 report_buttons_layout = [
     [sg.Push(), sg.Button("View 8-day Report", key="-8DAYREPORT-")],
     [sg.Push(), sg.Button("View Future Report", key="-FUTUREREPORT-")],
+    [sg.Push(), sg.Button("View Custom Report", key="-CUSTOMREPORT-")],
 ]
 
 main_layout = [
@@ -192,6 +193,23 @@ shifts_window_layout = [
     ],
 ]
 
+custom_dates_layout = [
+    [
+        sg.InputText("YYYY-MM-DD", key="-INPUT_BEG_DATE-"),
+        sg.CalendarButton(
+            "Beginning Date", target="-INPUT_BEG_DATE-", format=DATE_FMT_STR
+        ),
+    ],
+    [
+        sg.InputText("YYYY-MM-DD", key="-INPUT_END_DATE-"),
+        sg.CalendarButton("End Date", target="-INPUT_END_DATE-", format=DATE_FMT_STR),
+    ],
+    [
+        sg.Button("Execute report", key="-CUSTSAVE-"),
+        sg.Button("Cancel", key="-CUSTCANCEL-"),
+    ],
+]
+
 
 def write_to_window(window, work_info):
     """
@@ -256,11 +274,11 @@ def read_shifts_window(values, work_info):
                 if not m:
                     return None
                 shift = shift.split("-")
-                date_str = week_dates_list[idx].strftime("%Y-%m-%d")
+                date_str = week_dates_list[idx].strftime(DATE_FMT_STR)
                 new_df_dict["date"].append(date_str)
                 new_df_dict["start"].append(date_str + " " + shift[0])
                 new_df_dict["end"].append(date_str + " " + shift[1])
-                if date_str > dt.date.today().strftime("%Y-%m-%d"):
+                if date_str > dt.date.today().strftime(DATE_FMT_STR):
                     new_df_dict["scheduled"].append(1)
                 else:
                     new_df_dict["scheduled"].append(0)
@@ -278,6 +296,7 @@ def work_hrs_window(db_table, manifest_button=False):
     :param manifest_button: Control visibility of a manifest button
     :return: A string representing any status updates
     """
+    # PySimpleGUI requires a new layout each time the window is brought up
     work_hrs_layout = copy.deepcopy(shifts_window_layout)
 
     today = dt.date.today()
@@ -317,7 +336,9 @@ def work_hrs_window(db_table, manifest_button=False):
                 if work_info:
                     write_to_window(window, work_info)
                 else:
-                    window["-STATUS-"].update("Error reading Manifest", text_color="#FF0000")
+                    window["-STATUS-"].update(
+                        "Error reading Manifest", text_color="#FF0000"
+                    )
 
         if event == "-SAVE-":
             new_work_hrs_df = read_shifts_window(values, work_info)
@@ -331,10 +352,10 @@ def work_hrs_window(db_table, manifest_button=False):
                 # for each date, create a filtered DataFrame of the new
                 # and existing work info to detect changes to be saved
                 work_hrs_date_df = work_hrs_df[
-                    work_hrs_df.date == date.strftime("%Y-%m-%d")
+                    work_hrs_df.date == date.strftime(DATE_FMT_STR)
                 ][["date", "start", "end", "scheduled"]].reset_index()
                 new_work_hrs_date_df = new_work_hrs_df[
-                    new_work_hrs_df.date == date.strftime("%Y-%m-%d")
+                    new_work_hrs_df.date == date.strftime(DATE_FMT_STR)
                 ][["date", "start", "end", "scheduled"]].reset_index()
 
                 # detect changes 1) either DataFrame empty while other isn't,
@@ -377,6 +398,30 @@ def work_hrs_window(db_table, manifest_button=False):
 
     window.close()
     return return_str
+
+
+def custom_dates_report_window():
+    # PySimpleGUI requires a new layout each time the window is brought up
+    new_custom_dates_layout = copy.deepcopy(custom_dates_layout)
+
+    window = sg.Window(
+        "Custom Dates Report",
+        new_custom_dates_layout,
+        modal=True,
+        keep_on_top=True,
+        finalize=True,
+    )
+
+    while True:
+        event, values = window.read()
+
+        if event == "-CUSTSAVE-":
+            window.close()
+            return (values["-INPUT_BEG_DATE-"], values["-INPUT_END_DATE-"])
+
+        if event == "-CUSTCANCEL-":
+            window.close()
+            return (None, None)
 
 
 def main_window():
@@ -490,11 +535,56 @@ def main_window():
             )
             display_str = wh.get_notifications_str(
                 dt.date.today(),
-                dt.datetime.strptime(max_date, "%Y-%m-%d"),
+                dt.datetime.strptime(max_date, DATE_FMT_STR),
                 eight_day_df,
             )
             # print notices to the NOTIFICATIONS window
             print(display_str)
+
+        if event == "-CUSTOMREPORT-":
+            custom_beg_date_str, custom_end_date_str = custom_dates_report_window()
+
+            if custom_beg_date_str and custom_end_date_str:
+                try:
+                    dt_beg_date = dt.datetime.strptime(
+                        custom_beg_date_str, DATE_FMT_STR
+                    )
+                    dt_end_date = dt.datetime.strptime(
+                        custom_end_date_str, DATE_FMT_STR
+                    )
+                except ValueError:
+                    print("Formatting error with custom dates")
+                    continue
+
+                if dt_beg_date >= dt_end_date:
+                    print("Begin/End dates out of order")
+                    continue
+
+                # Make sure that we have the latest info
+                bus_hrs_df = wh.read_work_hrs_table("bus_hours")
+                HD_hrs_df = wh.read_work_hrs_table("HD_hours")
+                delivery_hrs_df = wh.read_work_hrs_table("delivery_hours")
+                eight_day_df = wh.compute_eight_day_df(
+                    bus_hrs_df, HD_hrs_df, delivery_hrs_df
+                )
+
+                window["-HRS_OUTPUT-"].update("")
+                window["-NOTIFICATIONS-"].update("")
+                window["-HRS_OUTPUT-"].update(
+                    wh.get_report_str(
+                        bus_hrs_df,
+                        HD_hrs_df,
+                        delivery_hrs_df,
+                        dt_beg_date,
+                        dt_end_date,
+                        eight_day_df,
+                    )
+                )
+                display_str = wh.get_notifications_str(
+                    dt_beg_date, dt_end_date, eight_day_df
+                )
+                # print notices to the NOTIFICATIONS window
+                print(display_str)
 
 
 if __name__ == "__main__":
