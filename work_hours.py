@@ -56,6 +56,7 @@ main_layout = [
             no_scrollbar=True,
             write_only=True,
             reroute_stdout=False,
+            font=("Courier New", 10),
         )
     ],
     [
