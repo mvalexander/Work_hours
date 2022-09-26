@@ -204,15 +204,15 @@ def display_alerts(eight_day_df):
             new_notifications.append(f"{ALERT_12_DRIVE_HRS} {row[1].date}\n")
 
     # ALERT for >= 10
-    twelve_driving_df = twelve_driving_df[eight_day_df.daily_tot_hrs < DELTA_12_HRS]
+    twelve_driving_df = twelve_driving_df[eight_day_df.drive_tot_hrs < DELTA_12_HRS]
     for row in twelve_driving_df.iterrows():
-        if row[1].daily_tot_hrs > DELTA_10_HRS:
+        if row[1].drive_tot_hrs > DELTA_10_HRS:
             new_notifications.append(f"{WARN_12_DRIVE_HRS} {row[1].date}\n")
 
     # ALERT for >= 8
-    twelve_driving_df = twelve_driving_df[eight_day_df.daily_tot_hrs < DELTA_10_HRS]
+    twelve_driving_df = twelve_driving_df[eight_day_df.drive_tot_hrs < DELTA_10_HRS]
     for row in twelve_driving_df.iterrows():
-        if row[1].daily_tot_hrs > DELTA_8_HRS:
+        if row[1].drive_tot_hrs > DELTA_8_HRS:
             new_notifications.append(f"{NOTE_12_DRIVE_HRS} {row[1].date}\n")
 
     return "".join(new_notifications)
@@ -660,14 +660,24 @@ def process_manifest(manifest_text, work_hrs_df):
             m = re.search(r"(\d{2}/\d{2})", line)
             if m:
                 date_week_of_str = m.groups()[0]
+                logger.error("Coord found.")
 
         # parse text for the work shift info, military hours format (1500-1800)
         m = re.findall(r"(\d{4}-\d{4})", line)
         if m:
             for item in m:
                 shifts.append(item)
+                logger.error("Coord date found")
+
 
     if not date_week_of_str or not shifts or (len(shifts) != 10):
+        logger.error("No coord info found")
+        if not date_week_of_str:
+            logger.error("date_week_of_str missing")
+        if not shifts:
+            logger.error("shifts missing")
+        if len(shifts) != 10:
+            logger.error("shifts not 10: {}", len(shifts))
         return None
 
     # add colons to shifts (1500-1800 -> 15:00-18:00)
