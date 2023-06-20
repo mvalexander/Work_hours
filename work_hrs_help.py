@@ -351,6 +351,10 @@ class Week:
         """return a list with shifts for each day Mon-Sun"""
         return self._shifts
 
+    def set_week_shifts_list(self, shifts):
+        """set shifts from a list of shifts for each day Mon-Sun"""
+        self._shifts = shifts
+
     def get_week_scheduled_list(self):
         """return a list of scheduled flag for each shift for each day Mon-Sun"""
         return self._scheduled

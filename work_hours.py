@@ -98,6 +98,9 @@ shifts_window_layout = [
         sg.Push(),
         sg.Button("Manifest", key="-MANIFEST-", visible=False),
     ],
+    [
+        sg.Button("Copy shift times from previous week", key="-COPYPREVWEEK-"),
+    ],
     # [
     #     sg.Text("", key="-WEEKOF-")
     # ],
@@ -324,6 +327,10 @@ def work_hrs_window(db_table, manifest_button=False):
             if event == "-TODAY-":
                 today = dt.date.today()
             work_info = wh.Week(work_hrs_df, today)
+            write_to_window(window, work_info)
+        if event == "-COPYPREVWEEK-":
+            last_week_work_info = wh.Week(work_hrs_df, today - dt.timedelta(days=7))
+            work_info.set_week_shifts_list(last_week_work_info.get_week_shifts_list())
             write_to_window(window, work_info)
         if event == "-MANIFEST-":
             manifest_text = sg.popup_get_text(
